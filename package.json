@@ -1,8 +1,8 @@
 {
-  "name": "",
+  "name": "did-instance-node",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.js",
   "type": "module",
   "license": "AGPL-version-3.0",
   "private": false,
@@ -18,9 +18,9 @@
   "bugs": "",
   "keywords": [],
   "author": {
-    "name": "",
-    "email": "",
-    "url": ""
+    "name": "Tautvilas Mečinskas",
+    "email": "did@tautvilas.lt",
+    "url": "http://tautvilas.lt"
   },
   "contributors": [],
   "scripts": {

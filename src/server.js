@@ -29,5 +29,4 @@ const main = async () => {
   console.log('libp2p has stopped')
 }
 
-main().then().catch(console.error)
-
+export default main;
