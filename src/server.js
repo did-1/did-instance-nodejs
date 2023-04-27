@@ -7,7 +7,7 @@ const main = async () => {
   const node = await createLibp2p({
     addresses: {
       // add a listen address (localhost) to accept TCP connections on a random port
-      listen: ['/ip4/127.0.0.1/tcp/0']
+      listen: [`/ip4/${process.env.HOSTNAME}/tcp/0`]
     },
     transports: [tcp()],
     connectionEncryption: [noise()],
@@ -25,8 +25,8 @@ const main = async () => {
   })
 
   // stop libp2p
-  await node.stop()
-  console.log('libp2p has stopped')
+  // await node.stop()
+  // console.log('libp2p ahas stopped')
 }
 
-export default main;
+export default main

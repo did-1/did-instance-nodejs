@@ -31,6 +31,7 @@
     "@chainsafe/libp2p-noise": "^11.0.4",
     "@libp2p/mplex": "^8.0.1",
     "@libp2p/tcp": "^7.0.0",
+    "dotenv": "^16.0.3",
     "libp2p": "^0.44.0"
   }
 }
