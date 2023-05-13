@@ -24,9 +24,16 @@ const main = async () => {
     console.log(addr.toString())
   })
 
-  // stop libp2p
-  // await node.stop()
-  // console.log('libp2p ahas stopped')
+  const stop = async () => {
+    // stop libp2p
+    await node.stop()
+    console.log('libp2p has stopped')
+    process.exit(0)
+  }
+  
+  process.on('SIGTERM', stop)
+  process.on('SIGINT', stop)
+  
 }
 
 export default main
