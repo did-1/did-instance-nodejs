@@ -1,7 +1,9 @@
 import { createLibp2p } from 'libp2p'
+import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { tcp } from '@libp2p/tcp'
 import { noise } from '@chainsafe/libp2p-noise'
 import { mplex } from '@libp2p/mplex'
+import { toString as uint8ArrayToString } from "uint8arrays/to-string";
 
 const main = async () => {
   const node = await createLibp2p({
@@ -11,7 +13,8 @@ const main = async () => {
     },
     transports: [tcp()],
     connectionEncryption: [noise()],
-    streamMuxers: [mplex()]
+    streamMuxers: [mplex()],
+    pubsub: gossipsub({ allowPublishToZeroPeers: true })
   })
 
   // start libp2p
@@ -23,6 +26,12 @@ const main = async () => {
   node.getMultiaddrs().forEach((addr) => {
     console.log(addr.toString())
   })
+
+  await node.pubsub.subscribe('news')
+  node.pubsub.addEventListener('message', (evt) => {
+    console.log(`node1 received: ${uint8ArrayToString(evt.detail.data)} on topic ${evt.detail.topic}`)
+  })
+  // console.log('PEERID', node.peerId)
 
   const stop = async () => {
     // stop libp2p

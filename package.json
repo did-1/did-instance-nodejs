@@ -28,6 +28,7 @@
     "test": ""
   },
   "dependencies": {
+    "@chainsafe/libp2p-gossipsub": "^7.0.0",
     "@chainsafe/libp2p-noise": "^11.0.4",
     "@libp2p/mplex": "^8.0.1",
     "@libp2p/tcp": "^7.0.0",
