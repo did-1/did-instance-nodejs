@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { createLibp2p } from 'libp2p'
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { tcp } from '@libp2p/tcp'
@@ -5,9 +6,21 @@ import { noise } from '@chainsafe/libp2p-noise'
 import { mplex } from '@libp2p/mplex'
 import { yamux } from '@chainsafe/libp2p-yamux'
 import { toString as uint8ArrayToString } from "uint8arrays/to-string";
+import { peerIdFromKeys } from '@libp2p/peer-id'
+import { keys } from '@libp2p/crypto'
+
+// const privateKeyPem = new Uint8Array(fs.readFileSync('./keys/id_rsa'));
+// const publicKeyPem = new Uint8Array(fs.readFileSync('./keys/id_rsa.pub'));
 
 const main = async () => {
+  const privateKey = await keys.generateKeyPair('RSA', 2048);
+  const publicKey = privateKey.public;
+  // console.log(privateKey.export('', 'pkcs-8'));
+  // console.log(publicKey.export());
+  const id = await peerIdFromKeys(publicKey.bytes, privateKey.bytes);
+  console.log(id);
   const node = await createLibp2p({
+    peerId: id,
     addresses: {
       // add a listen address (localhost) to accept TCP connections on a random port
       listen: [`/ip4/${process.env.HOSTNAME}/tcp/0`]
