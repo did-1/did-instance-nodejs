@@ -3,6 +3,7 @@ import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { tcp } from '@libp2p/tcp'
 import { noise } from '@chainsafe/libp2p-noise'
 import { mplex } from '@libp2p/mplex'
+import { yamux } from '@chainsafe/libp2p-yamux'
 import { toString as uint8ArrayToString } from "uint8arrays/to-string";
 
 const main = async () => {
@@ -13,19 +14,31 @@ const main = async () => {
     },
     transports: [tcp()],
     connectionEncryption: [noise()],
-    streamMuxers: [mplex()],
+    streamMuxers: [mplex(), yamux()],
     pubsub: gossipsub({ allowPublishToZeroPeers: true })
+  })
+
+  node.addEventListener('peer:connect', async (evt) => {
+    console.log('Connection established to:', evt.detail.remotePeer.toString())	// Emitted when a new connection has been created
+    console.log((await node.peerStore.all()).length);
+  })
+
+  node.addEventListener('peer:discovery', (evt) => {
+    // No need to dial, autoDial is on
+    console.log('Discovered:', evt.detail.id.toString())
   })
 
   // start libp2p
   await node.start()
-  console.log('libp2p has started')
 
   // print out listening addresses
   console.log('listening on addresses:')
   node.getMultiaddrs().forEach((addr) => {
     console.log(addr.toString())
   })
+
+  console.log('libp2p has started')
+  console.log((await node.peerStore.all()).length);
 
   await node.pubsub.subscribe('news')
   node.pubsub.addEventListener('message', (evt) => {
