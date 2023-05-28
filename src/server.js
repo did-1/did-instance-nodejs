@@ -10,7 +10,7 @@ import { peerIdFromKeys } from '@libp2p/peer-id'
 import { keys } from '@libp2p/crypto'
 
 const main = async () => {
-  if (!fs.existsSync('./env')) {
+  if (!fs.existsSync('./.env')) {
     console.log('Please setup .env file before launch')
     return
   }
