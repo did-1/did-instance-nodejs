@@ -9,14 +9,20 @@ import { toString as uint8ArrayToString } from "uint8arrays/to-string";
 import { peerIdFromKeys } from '@libp2p/peer-id'
 import { keys } from '@libp2p/crypto'
 
-const privateKey = new Uint8Array(fs.readFileSync('./keys/private.key'));
-const publicKey = new Uint8Array(fs.readFileSync('./keys/public.key'));
-
 const main = async () => {
-  // const privateKey = await keys.generateKeyPair('RSA', 2048);
-  // const publicKey = privateKey.public;
-  // fs.writeFileSync('./keys/private.key', Buffer.from(privateKey.bytes));
-  // fs.writeFileSync('./keys/public.key', Buffer.from(publicKey.bytes));
+  if (!fs.existsSync('./env')) {
+    console.log('Please setup .env file before launch')
+    return
+  }
+  if (!fs.existsSync('./keys/private.key') || !fs.existsSync('./keys.public.key')) {
+    console.log('Generating keys...')
+    const privateKey = await keys.generateKeyPair('RSA', 2048);
+    const publicKey = privateKey.public;
+    fs.writeFileSync('./keys/private.key', Buffer.from(privateKey.bytes));
+    fs.writeFileSync('./keys/public.key', Buffer.from(publicKey.bytes));
+  }
+  const privateKey = new Uint8Array(fs.readFileSync('./keys/private.key'))
+  const publicKey = new Uint8Array(fs.readFileSync('./keys/public.key'))
   const id = await peerIdFromKeys(publicKey, privateKey);
   console.log(id);
   const node = await createLibp2p({
