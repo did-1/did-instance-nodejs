@@ -9,21 +9,21 @@ import { toString as uint8ArrayToString } from "uint8arrays/to-string";
 import { peerIdFromKeys } from '@libp2p/peer-id'
 import { keys } from '@libp2p/crypto'
 
-// const privateKeyPem = new Uint8Array(fs.readFileSync('./keys/id_rsa'));
-// const publicKeyPem = new Uint8Array(fs.readFileSync('./keys/id_rsa.pub'));
+const privateKey = new Uint8Array(fs.readFileSync('./keys/private.key'));
+const publicKey = new Uint8Array(fs.readFileSync('./keys/public.key'));
 
 const main = async () => {
-  const privateKey = await keys.generateKeyPair('RSA', 2048);
-  const publicKey = privateKey.public;
-  // console.log(privateKey.export('', 'pkcs-8'));
-  // console.log(publicKey.export());
-  const id = await peerIdFromKeys(publicKey.bytes, privateKey.bytes);
+  // const privateKey = await keys.generateKeyPair('RSA', 2048);
+  // const publicKey = privateKey.public;
+  // fs.writeFileSync('./keys/private.key', Buffer.from(privateKey.bytes));
+  // fs.writeFileSync('./keys/public.key', Buffer.from(publicKey.bytes));
+  const id = await peerIdFromKeys(publicKey, privateKey);
   console.log(id);
   const node = await createLibp2p({
     peerId: id,
     addresses: {
-      // add a listen address (localhost) to accept TCP connections on a random port
-      listen: [`/ip4/${process.env.HOSTNAME}/tcp/0`]
+      // add a listen address (localhost) to accept TCP connections. 0 would mean the port is random
+      listen: [`/ip4/${process.env.HOSTNAME}/tcp/54442`]
     },
     transports: [tcp()],
     connectionEncryption: [noise()],
