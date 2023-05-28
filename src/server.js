@@ -14,7 +14,7 @@ const main = async () => {
     console.log('Please setup .env file before launch')
     return
   }
-  if (!fs.existsSync('./keys/private.key') || !fs.existsSync('./keys.public.key')) {
+  if (!fs.existsSync('./keys/private.key') || !fs.existsSync('./keys/public.key')) {
     console.log('Generating keys...')
     const privateKey = await keys.generateKeyPair('RSA', 2048);
     const publicKey = privateKey.public;
