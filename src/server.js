@@ -65,6 +65,10 @@ const main = async () => {
   })
   // console.log('PEERID', node.peerId)
 
+  await node.handle('/did/1.0.0', async ({ stream }) => {
+    console.log('received did stream' + stream)
+  })
+
   const stop = async () => {
     // stop libp2p
     await node.stop()
