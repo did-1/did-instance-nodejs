@@ -8,6 +8,7 @@ import { yamux } from '@chainsafe/libp2p-yamux'
 import { toString as uint8ArrayToString } from "uint8arrays/to-string";
 import { peerIdFromKeys } from '@libp2p/peer-id'
 import { keys } from '@libp2p/crypto'
+import { pipe } from 'it-pipe'
 
 const main = async () => {
   if (!fs.existsSync('./.env')) {
@@ -67,6 +68,7 @@ const main = async () => {
 
   await node.handle('/did/1.0.0', async ({ stream }) => {
     console.log('received did stream' + stream)
+    pipe(stream.source, stream.sink)
   })
 
   const stop = async () => {
