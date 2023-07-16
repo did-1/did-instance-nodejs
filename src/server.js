@@ -1,11 +1,11 @@
-import fs from 'fs';
+import fs from 'fs'
 import { createLibp2p } from 'libp2p'
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { tcp } from '@libp2p/tcp'
 import { noise } from '@chainsafe/libp2p-noise'
 import { mplex } from '@libp2p/mplex'
 import { yamux } from '@chainsafe/libp2p-yamux'
-import { toString as uint8ArrayToString } from "uint8arrays/to-string";
+import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { peerIdFromKeys } from '@libp2p/peer-id'
 import { keys } from '@libp2p/crypto'
 import { pipe } from 'it-pipe'
@@ -15,17 +15,20 @@ const main = async () => {
     console.log('Please setup .env file before launch')
     return
   }
-  if (!fs.existsSync('./keys/private.key') || !fs.existsSync('./keys/public.key')) {
+  if (
+    !fs.existsSync('./keys/private.key') ||
+    !fs.existsSync('./keys/public.key')
+  ) {
     console.log('Generating keys...')
-    const privateKey = await keys.generateKeyPair('RSA', 2048);
-    const publicKey = privateKey.public;
-    fs.writeFileSync('./keys/private.key', Buffer.from(privateKey.bytes));
-    fs.writeFileSync('./keys/public.key', Buffer.from(publicKey.bytes));
+    const privateKey = await keys.generateKeyPair('RSA', 2048)
+    const publicKey = privateKey.public
+    fs.writeFileSync('./keys/private.key', Buffer.from(privateKey.bytes))
+    fs.writeFileSync('./keys/public.key', Buffer.from(publicKey.bytes))
   }
   const privateKey = new Uint8Array(fs.readFileSync('./keys/private.key'))
   const publicKey = new Uint8Array(fs.readFileSync('./keys/public.key'))
-  const id = await peerIdFromKeys(publicKey, privateKey);
-  console.log(id);
+  const id = await peerIdFromKeys(publicKey, privateKey)
+  console.log(id)
   const node = await createLibp2p({
     peerId: id,
     addresses: {
@@ -39,8 +42,8 @@ const main = async () => {
   })
 
   node.addEventListener('peer:connect', async (evt) => {
-    console.log('Connection established to:', evt.detail.remotePeer.toString())	// Emitted when a new connection has been created
-    console.log((await node.peerStore.all()).length);
+    console.log('Connection established to:', evt.detail.remotePeer.toString()) // Emitted when a new connection has been created
+    console.log((await node.peerStore.all()).length)
   })
 
   node.addEventListener('peer:discovery', (evt) => {
@@ -58,11 +61,15 @@ const main = async () => {
   })
 
   console.log('libp2p has started')
-  console.log((await node.peerStore.all()).length);
+  console.log((await node.peerStore.all()).length)
 
   await node.pubsub.subscribe('news')
   node.pubsub.addEventListener('message', (evt) => {
-    console.log(`node1 received: ${uint8ArrayToString(evt.detail.data)} on topic ${evt.detail.topic}`)
+    console.log(
+      `node1 received: ${uint8ArrayToString(evt.detail.data)} on topic ${
+        evt.detail.topic
+      }`
+    )
   })
   // console.log('PEERID', node.peerId)
 
@@ -77,10 +84,9 @@ const main = async () => {
     console.log('libp2p has stopped')
     process.exit(0)
   }
-  
+
   process.on('SIGTERM', stop)
   process.on('SIGINT', stop)
-  
 }
 
 export default main
