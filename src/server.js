@@ -1,20 +1,19 @@
 import fs from 'fs'
+
 import { createLibp2p } from 'libp2p'
-import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { tcp } from '@libp2p/tcp'
-import { noise } from '@chainsafe/libp2p-noise'
 import { mplex } from '@libp2p/mplex'
-import { yamux } from '@chainsafe/libp2p-yamux'
-import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { peerIdFromKeys } from '@libp2p/peer-id'
 import { keys } from '@libp2p/crypto'
+
+import { gossipsub } from '@chainsafe/libp2p-gossipsub'
+import { noise } from '@chainsafe/libp2p-noise'
+import { yamux } from '@chainsafe/libp2p-yamux'
+
+import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { pipe } from 'it-pipe'
 
 const main = async () => {
-  if (!fs.existsSync('./.env')) {
-    console.log('Please setup .env file before launch')
-    return
-  }
   if (
     !fs.existsSync('./keys/private.key') ||
     !fs.existsSync('./keys/public.key')
