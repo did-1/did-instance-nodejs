@@ -50,22 +50,45 @@ app.post('/users/:domain/path/validate', async (req, res) => {
 })
 
 app.post('/users/:domain/post', async (req, res) => {
-  const domain = req.params.domain
+  const domain = req.params.domain.toLowerCase()
   const body = req.body
+  const domainChecks = [
+    {
+      validator: (d = '') => {
+        const parts = domain.split('.')
+        if (parts.length !== 2 || !parts[0].length || !parts[1].length) {
+          return false
+        }
+        return true
+      },
+      message: 'Invalid domain name'
+    },
+    {
+      validator: (d = '') => /^(?!-)[a-z0-9.-]*(?<!-)$/.test(d),
+      message: 'Invalid domain name'
+    }
+  ]
+  for (let i = 0; i < domainChecks.length; i++) {
+    const check = domainChecks[i]
+    if (!check.validator(domain)) {
+      return res.send({ error: check.message })
+    }
+  }
   // console.log('SUBMIT POST', domain, body)
   // 1. download public key from domain
   // 2. download post from url
   // 3. validate signature
   // 4. validate block id
-  // 5. save entry in sqlite
-  // 6. publish message on the network
+  // 5. check for conflicts
+  // 6. save entry in sqlite
+  // 7. publish message on the network
   return res.send({ domain, body })
 })
 
 app.get('/block/latest', async (req, res) => {
   const resp = await fetch('https://blockchain.info/latestblock')
   const block = await resp.json()
-  return block
+  return res.send(block)
 })
 
 export default app
