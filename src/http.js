@@ -1,7 +1,35 @@
-import crypto from 'crypto'
+import crypto, { sign } from 'crypto'
 import express from 'express'
 import cors from 'cors'
 import fetch from 'node-fetch'
+import sqlite3 from 'sqlite3'
+
+const db = new sqlite3.Database(
+  './did.db',
+  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
+  (err) => {
+    if (err) {
+      console.error(err.message) // Bummer, man! An error.
+    }
+    console.log('Connected to the did.db.') // All good, bro.
+  }
+)
+
+db.run(
+  `CREATE TABLE IF NOT EXISTS posts (
+    signature TEXT PRIMARY KEY,
+    domain TEXT NOT NULL,
+    path TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    block TEXT NOT NULL
+  );`,
+  (err) => {
+    if (err) {
+      return console.error(err.message) // If things go south, we'll know.
+    }
+    console.log('posts table initialized') // Success, bro!
+  }
+)
 
 const app = express()
 app.use(cors())
@@ -79,7 +107,7 @@ app.post('/users/:domain/post', async (req, res) => {
   // 2. get public key
   const publicKeyUrl = ['http:/', domain, 'did.pem'].join('/')
   const resp = await fetch(publicKeyUrl)
-  const { hash, blockHash } = req.body
+  const { hash, blockHash, signature, path } = req.body
   const publicKeyPem = await resp.text()
   if (!publicKeyPem.includes('PUBLIC KEY')) {
     return res.send({ error: `Public key not found on ${publicKeyUrl}` })
@@ -95,7 +123,7 @@ app.post('/users/:domain/post', async (req, res) => {
     return res.send({ error: `Invalid public key` })
   }
   // 2. download post from url
-  const postUrl = ['http:/', req.body.domain, req.body.path].join('/')
+  const postUrl = ['http:/', req.body.domain, path].join('/')
   const postResp = await fetch(postUrl)
   const post = await postResp.text()
   // TODO: target domain name and path validation
@@ -104,15 +132,11 @@ app.post('/users/:domain/post', async (req, res) => {
     return res.send({ error: `Valid DID post not found at ${postUrl}` })
   }
   // 3. validate signature
-  const message = [blockHash, req.body.domain, req.body.path, hash].join('/')
+  const message = [blockHash, req.body.domain, path, hash].join('/')
   const verify = crypto.createVerify('sha256')
   verify.update(message)
   verify.end()
-  const verification = verify.verify(
-    publicKey,
-    Buffer.from(req.body.signature),
-    message
-  )
+  const verification = verify.verify(publicKey, Buffer.from(signature), message)
   // console.log(message)
   if (!verification) {
     return res.send({ error: `Invalid post signature` })
@@ -130,8 +154,20 @@ app.post('/users/:domain/post', async (req, res) => {
   }
   // 6. check for DB conflicts
   // 7. save entry in sqlite
+  const stmt = db.prepare(
+    `INSERT INTO posts (signature, domain, hash, path, block) VALUES (?, ?, ?, ?, ?)`
+  )
+  const sigHex = signature.map((num) => num.toString(16)).join('')
+  stmt.run(sigHex, req.body.domain, hash, path, blockHash, (err) => {
+    if (err) {
+      console.error(err)
+      return res.send({ domain, body, error: 'DB insert failed' })
+    } else {
+      return res.send({ domain, body, error: 'DONE' })
+    }
+  })
   // 8. publish message on the network
-  return res.send({ domain, body, error: 'Not implemented' })
+  // return res.send({ domain, body, error: 'Not implemented' })
 })
 
 app.get('/block/latest', async (req, res) => {
