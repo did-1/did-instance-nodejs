@@ -35,4 +35,37 @@ app.post('/users/:domain/validate', async (req, res) => {
   return res.send({ domain, valid })
 })
 
+app.post('/users/:domain/path/validate', async (req, res) => {
+  const domain = req.params.domain
+  const path = req.body.path
+  let valid = false
+  try {
+    const resp = await fetch(['http:/', domain, path].join('/'))
+    if (resp.status === 200) {
+      // TODO: validate if post is a valid DID document
+      valid = true
+    }
+  } catch {}
+  return res.send({ domain, valid })
+})
+
+app.post('/users/:domain/post', async (req, res) => {
+  const domain = req.params.domain
+  const body = req.body
+  // console.log('SUBMIT POST', domain, body)
+  // 1. download public key from domain
+  // 2. download post from url
+  // 3. validate signature
+  // 4. validate block id
+  // 5. save entry in sqlite
+  // 6. publish message on the network
+  return res.send({ domain, body })
+})
+
+app.get('/block/latest', async (req, res) => {
+  const resp = await fetch('https://blockchain.info/latestblock')
+  const block = await resp.json()
+  return block
+})
+
 export default app
