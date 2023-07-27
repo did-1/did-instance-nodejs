@@ -41,8 +41,9 @@ app.post('/users/:domain/path/validate', async (req, res) => {
   let valid = false
   try {
     const resp = await fetch(['http:/', domain, path].join('/'))
-    if (resp.status === 200) {
-      // TODO: validate if post is a valid DID document
+    const post = await resp.text()
+    // TODO: make proper validation
+    if (post.includes('did:content')) {
       valid = true
     }
   } catch {}
@@ -68,21 +69,69 @@ app.post('/users/:domain/post', async (req, res) => {
       message: 'Invalid domain name'
     }
   ]
+  // 1. Validate user domain
   for (let i = 0; i < domainChecks.length; i++) {
     const check = domainChecks[i]
     if (!check.validator(domain)) {
       return res.send({ error: check.message })
     }
   }
-  // console.log('SUBMIT POST', domain, body)
-  // 1. download public key from domain
+  // 2. get public key
+  const publicKeyUrl = ['http:/', domain, 'did.pem'].join('/')
+  const resp = await fetch(publicKeyUrl)
+  const { hash, blockHash } = req.body
+  const publicKeyPem = await resp.text()
+  if (!publicKeyPem.includes('PUBLIC KEY')) {
+    return res.send({ error: `Public key not found on ${publicKeyUrl}` })
+  }
+  let publicKey
+  try {
+    publicKey = crypto.createPublicKey({
+      key: publicKeyPem,
+      format: 'pem'
+    })
+  } catch (e) {
+    console.error(e)
+    return res.send({ error: `Invalid public key` })
+  }
   // 2. download post from url
+  const postUrl = ['http:/', req.body.domain, req.body.path].join('/')
+  const postResp = await fetch(postUrl)
+  const post = await postResp.text()
+  // TODO: target domain name and path validation
+  // TODO: do proper validation with HTML parser
+  if (!post.includes('did:content')) {
+    return res.send({ error: `Valid DID post not found at ${postUrl}` })
+  }
   // 3. validate signature
-  // 4. validate block id
-  // 5. check for conflicts
-  // 6. save entry in sqlite
-  // 7. publish message on the network
-  return res.send({ domain, body })
+  const message = [blockHash, req.body.domain, req.body.path, hash].join('/')
+  const verify = crypto.createVerify('sha256')
+  verify.update(message)
+  verify.end()
+  const verification = verify.verify(
+    publicKey,
+    Buffer.from(req.body.signature),
+    message
+  )
+  // console.log(message)
+  if (!verification) {
+    return res.send({ error: `Invalid post signature` })
+  }
+  // 4. validate content checksum hash
+  const contentHash = crypto.createHash('sha256').update(post).digest('hex')
+  if (contentHash !== hash) {
+    return res.send({ error: `Invalid content hash ${contentHash} ${hash}` })
+  }
+  // 5. validate block id
+  const blockResp = await fetch(`https://blockchain.info/rawblock/${blockHash}`)
+  const block = await blockResp.json()
+  if (!block?.hash) {
+    return res.send({ domain, body, error: 'Invalid block hash' })
+  }
+  // 6. check for DB conflicts
+  // 7. save entry in sqlite
+  // 8. publish message on the network
+  return res.send({ domain, body, error: 'Not implemented' })
 })
 
 app.get('/block/latest', async (req, res) => {
