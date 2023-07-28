@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import fetch from 'node-fetch'
 import db from './db.js'
+import validators from './validators.js'
 
 const app = express()
 app.use(cors())
@@ -43,52 +44,23 @@ app.post('/users/:domain/path/validate', async (req, res) => {
   try {
     const resp = await fetch(['http:/', domain, path].join('/'))
     const post = await resp.text()
-    // TODO: make proper validation
-    if (post.includes('did:content')) {
+    const postValidation = validators.validatePostContent(post)
+    if (postValidation.valid) {
       valid = true
     }
   } catch {}
   return res.send({ domain, valid })
 })
 
-// sanitize and validate domain name
-function validateDomainName(domain = '') {
-  domain = domain.toLowerCase()
-  const domainChecks = [
-    {
-      validator: (d = '') => {
-        const parts = domain.split('.')
-        if (parts.length !== 2 || !parts[0].length || !parts[1].length) {
-          return false
-        }
-        return true
-      },
-      message: 'Invalid domain name'
-    },
-    {
-      validator: (d = '') => /^(?!-)[a-z0-9.-]*(?<!-)$/.test(d),
-      message: 'Invalid domain name'
-    }
-  ]
-  // 1. Validate user domain
-  for (let i = 0; i < domainChecks.length; i++) {
-    const check = domainChecks[i]
-    if (!check.validator(domain)) {
-      return { valid: false, message: check.message }
-    }
-  }
-  return { valid: true, value: domain }
-}
-
 app.post('/users/:domain/post', async (req, res) => {
   const body = req.body
-  const domainValidation = validateDomainName(req.params.domain)
+  const domainValidation = validators.validateDomainName(req.params.domain)
   if (!domainValidation.valid) {
     return res.send({ error: 'User domain invalid' + domainValidation.message })
   }
   const ownerDomain = domainValidation.value
 
-  const postDomainValidation = validateDomainName(req.body.domain)
+  const postDomainValidation = validators.validateDomainName(req.body.domain)
   if (!domainValidation.valid) {
     return res.send({
       error: 'Post domain invalid:' + domainValidation.message
@@ -115,12 +87,12 @@ app.post('/users/:domain/post', async (req, res) => {
     return res.send({ error: `Invalid public key` })
   }
   // 2. download post from url
+  // TODO: target domain name and path validation, remove repeating slashes, sart end slashes
   const postUrl = ['http:/', postDomain, path].join('/')
   const postResp = await fetch(postUrl)
   const post = await postResp.text()
-  // TODO: target domain name and path validation, remove repeating slashes, sart end slashes
-  // TODO: do proper validation with HTML parser
-  if (!post.includes('did:content')) {
+  const postValidation = validators.validatePostContent(post)
+  if (!postValidation.valid) {
     return res.send({ error: `Valid DID post not found at ${postUrl}` })
   }
   // 3. validate signature
