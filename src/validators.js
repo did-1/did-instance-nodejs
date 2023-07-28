@@ -1,8 +1,17 @@
 // sanitize and validate domain name
 import { parse } from 'node-html-parser'
 
+function validatePath(path = '') {
+  path = path.trim().replace(/\/+/g, '/').replace(/^\//, '').replace(/\/$/, '')
+  const regex = /^[a-zA-Z0-9/_-]*$/
+  if (!regex.test(path)) {
+    return { valid: false, message: 'Invalid characters detected' }
+  }
+  return { valid: true, value: path }
+}
+
 function validateDomainName(domain = '') {
-  domain = domain.toLowerCase()
+  domain = domain.toLowerCase().trim()
   const domainChecks = [
     {
       validator: (d = '') => {
@@ -50,5 +59,6 @@ function validatePostContent(post) {
 
 export default {
   validateDomainName,
-  validatePostContent
+  validatePostContent,
+  validatePath
 }

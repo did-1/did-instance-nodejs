@@ -1,4 +1,4 @@
-import crypto, { sign } from 'crypto'
+import crypto from 'crypto'
 import express from 'express'
 import cors from 'cors'
 import fetch from 'node-fetch'
@@ -13,17 +13,21 @@ app.get('/', (req, res) => {
   return res.send('This is DID instance node')
 })
 
-app.post('/keys', (req, res) => {
-  const pair = crypto.generateKeyPairSync('ec', {
-    namedCurve: 'secp256k1'
-  })
-  const privateKey = pair.privateKey.export({ type: 'pkcs8', format: 'pem' })
-  const publicKey = pair.publicKey.export({ type: 'spki', format: 'pem' })
-  return res.send({ privateKey, publicKey })
-})
+// app.post('/keys', (req, res) => {
+//   const pair = crypto.generateKeyPairSync('ec', {
+//     namedCurve: 'secp256k1'
+//   })
+//   const privateKey = pair.privateKey.export({ type: 'pkcs8', format: 'pem' })
+//   const publicKey = pair.publicKey.export({ type: 'spki', format: 'pem' })
+//   return res.send({ privateKey, publicKey })
+// })
 
 app.post('/users/:domain/validate', async (req, res) => {
-  const domain = req.params.domain
+  const domainValidation = validators.validateDomainName(req.params.domain)
+  if (!domainValidation.valid) {
+    return res.send({ valid: false })
+  }
+  const domain = domainValidation.value
   const publicKey = req.body.publicKey
   let valid = false
   try {
@@ -38,8 +42,16 @@ app.post('/users/:domain/validate', async (req, res) => {
 })
 
 app.post('/users/:domain/path/validate', async (req, res) => {
-  const domain = req.params.domain
-  const path = req.body.path
+  const domainValidation = validators.validateDomainName(req.params.domain)
+  if (!domainValidation.valid) {
+    return res.send({ valid: false })
+  }
+  const domain = domainValidation.value
+  const pathValidation = validators.validatePath(req.body.path)
+  if (!pathValidation.valid) {
+    return { valid: false, error: 'Invalid path ' + pathValidation.message }
+  }
+  const path = pathValidation.value
   let valid = false
   try {
     const resp = await fetch(['http:/', domain, path].join('/'))
@@ -68,10 +80,16 @@ app.post('/users/:domain/post', async (req, res) => {
   }
   const postDomain = postDomainValidation.value
 
+  const pathValidation = validators.validatePath(req.body.path)
+  if (!pathValidation.valid) {
+    return { error: 'Invalid path ' + pathValidation.message }
+  }
+  const path = pathValidation.value
+
   // 2. get public key
   const publicKeyUrl = ['http:/', ownerDomain, 'did.pem'].join('/')
   const resp = await fetch(publicKeyUrl)
-  const { hash, blockHash, signature, path } = req.body
+  const { hash, blockHash, signature } = req.body
   const publicKeyPem = await resp.text()
   if (!publicKeyPem.includes('PUBLIC KEY')) {
     return res.send({ error: `Public key not found on ${publicKeyUrl}` })
@@ -87,7 +105,6 @@ app.post('/users/:domain/post', async (req, res) => {
     return res.send({ error: `Invalid public key` })
   }
   // 2. download post from url
-  // TODO: target domain name and path validation, remove repeating slashes, sart end slashes
   const postUrl = ['http:/', postDomain, path].join('/')
   const postResp = await fetch(postUrl)
   const post = await postResp.text()
