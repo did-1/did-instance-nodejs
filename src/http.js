@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import crypto, { sign } from 'crypto'
 import express from 'express'
 import cors from 'cors'
 import fetch from 'node-fetch'
@@ -90,6 +90,7 @@ app.post('/users/:domain/post', async (req, res) => {
   const publicKeyUrl = ['http:/', ownerDomain, 'did.pem'].join('/')
   const resp = await fetch(publicKeyUrl)
   const { hash, blockHash, signature } = req.body
+  const signatureHex = signature.map((num) => num.toString(16)).join('')
   const publicKeyPem = await resp.text()
   if (!publicKeyPem.includes('PUBLIC KEY')) {
     return res.send({ error: `Public key not found on ${publicKeyUrl}` })
@@ -140,6 +141,11 @@ app.post('/users/:domain/post', async (req, res) => {
     await db.insertBlock(block.hash, block.time)
   }
   // 6. check for DB conflicts
+  const conflictPost = await db.getPostBySignature(signatureHex)
+  if (conflictPost) {
+    // console.log(conflictPost)
+    return res.send({ error: 'Double submission' })
+  }
   // 7. save entry in sqlite
   try {
     await db.insertPost(
@@ -148,12 +154,12 @@ app.post('/users/:domain/post', async (req, res) => {
       path,
       hash,
       blockHash,
-      signature
+      signatureHex
     )
     return res.send({ error: 'DONE' })
   } catch (e) {
     console.error(e)
-    return res.send({ error: 'DB ERROR' })
+    return res.send({})
   }
   // 8. publish message on the network
 })

@@ -46,9 +46,8 @@ const methods = {
       const stmt = db.prepare(
         `INSERT INTO posts (signature, domain, hash, path, block) VALUES (?, ?, ?, ?, ?)`
       )
-      const sigHex = signature.map((num) => num.toString(16)).join('')
       stmt.run(
-        sigHex,
+        signature,
         ownerDomain,
         hash,
         [postDomain, path].join('/'),
@@ -79,9 +78,21 @@ const methods = {
   },
   getBlock: (hash) => {
     const promise = new Promise((resolve, reject) => {
-      const stmt = db.get(
-        `SELECT * FROM blocks WHERE hash = ?`,
-        [hash],
+      db.get(`SELECT * FROM blocks WHERE hash = ?`, [hash], (err, row) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(row)
+        }
+      })
+    })
+    return promise
+  },
+  getPostBySignature: (signature) => {
+    const promise = new Promise((resolve, reject) => {
+      db.get(
+        `SELECT * FROM posts WHERE signature = ?`,
+        [signature],
         (err, row) => {
           if (err) {
             reject(err)
