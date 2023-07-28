@@ -2,34 +2,7 @@ import crypto, { sign } from 'crypto'
 import express from 'express'
 import cors from 'cors'
 import fetch from 'node-fetch'
-import sqlite3 from 'sqlite3'
-
-const db = new sqlite3.Database(
-  './did.db',
-  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-  (err) => {
-    if (err) {
-      console.error(err.message) // Bummer, man! An error.
-    }
-    console.log('Connected to the did.db.') // All good, bro.
-  }
-)
-
-db.run(
-  `CREATE TABLE IF NOT EXISTS posts (
-    signature TEXT PRIMARY KEY,
-    domain TEXT NOT NULL,
-    path TEXT NOT NULL,
-    hash TEXT NOT NULL,
-    block TEXT NOT NULL
-  );`,
-  (err) => {
-    if (err) {
-      return console.error(err.message) // If things go south, we'll know.
-    }
-    console.log('posts table initialized') // Success, bro!
-  }
-)
+import db from './db.js'
 
 const app = express()
 app.use(cors())
@@ -166,34 +139,34 @@ app.post('/users/:domain/post', async (req, res) => {
     return res.send({ error: `Invalid content hash ${contentHash} ${hash}` })
   }
   // 5. validate block id
-  const blockResp = await fetch(`https://blockchain.info/rawblock/${blockHash}`)
-  const block = await blockResp.json()
-  if (!block?.hash) {
-    return res.send({ domain, body, error: 'Invalid block hash' })
+  const cachedBlock = await db.getBlock(blockHash)
+  if (!cachedBlock) {
+    const blockResp = await fetch(
+      `https://blockchain.info/rawblock/${blockHash}`
+    )
+    const block = await blockResp.json()
+    if (!block?.hash) {
+      return res.send({ domain, body, error: 'Invalid block hash' })
+    }
+    await db.insertBlock(block.hash, block.time)
   }
   // 6. check for DB conflicts
   // 7. save entry in sqlite
-  const stmt = db.prepare(
-    `INSERT INTO posts (signature, domain, hash, path, block) VALUES (?, ?, ?, ?, ?)`
-  )
-  const sigHex = signature.map((num) => num.toString(16)).join('')
-  stmt.run(
-    sigHex,
-    ownerDomain,
-    hash,
-    [postDomain, path].join('/'),
-    blockHash,
-    (err) => {
-      if (err) {
-        console.error(err)
-        return res.send({ error: 'DB insert failed' })
-      } else {
-        return res.send({ error: 'DONE' })
-      }
-    }
-  )
+  try {
+    await db.insertPost(
+      ownerDomain,
+      postDomain,
+      path,
+      hash,
+      blockHash,
+      signature
+    )
+    return res.send({ error: 'DONE' })
+  } catch (e) {
+    console.error(e)
+    return res.send({ error: 'DB ERROR' })
+  }
   // 8. publish message on the network
-  // return res.send({ domain, body, error: 'Not implemented' })
 })
 
 app.get('/block/latest', async (req, res) => {
