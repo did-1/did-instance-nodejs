@@ -25,7 +25,7 @@ app.get('/', (req, res) => {
 app.post('/users/:domain/validate', async (req, res) => {
   const domainValidation = validators.validateDomainName(req.params.domain)
   if (!domainValidation.valid) {
-    return res.send({ valid: false })
+    return res.send({ valid: false, message: 'Invalid domain name' })
   }
   const domain = domainValidation.value
   const publicKey = req.body.publicKey
@@ -44,12 +44,18 @@ app.post('/users/:domain/validate', async (req, res) => {
 app.post('/users/:domain/path/validate', async (req, res) => {
   const domainValidation = validators.validateDomainName(req.params.domain)
   if (!domainValidation.valid) {
-    return res.send({ valid: false })
+    return res.send({
+      valid: false,
+      message: 'Invalid domain name ' + req.params.domain
+    })
   }
   const domain = domainValidation.value
   const pathValidation = validators.validatePath(req.body.path)
   if (!pathValidation.valid) {
-    return { valid: false, error: 'Invalid path ' + pathValidation.message }
+    return res.send({
+      valid: false,
+      message: 'Invalid path name ' + req.body.path
+    })
   }
   const path = pathValidation.value
   let valid = false
@@ -147,6 +153,7 @@ app.post('/users/:domain/post', async (req, res) => {
     return res.send({ error: 'Double submission' })
   }
   // 7. save entry in sqlite
+  console.log('SAVE ENTRY')
   try {
     await db.insertPost(
       ownerDomain,
@@ -156,7 +163,7 @@ app.post('/users/:domain/post', async (req, res) => {
       blockHash,
       signatureHex
     )
-    return res.send({ error: 'DONE' })
+    return res.send({ success: true })
   } catch (e) {
     console.error(e)
     return res.send({})
