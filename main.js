@@ -13,6 +13,10 @@ dotenv.config()
 
 libp2pServer().then().catch(console.error)
 
-httpServer.listen(process.env.HTTP_PORT, () => {
-  console.log(`App llistening on port ${process.env.HTTP_PORT}`)
-})
+if (process.env.HTTP_PORT) {
+  httpServer.listen(process.env.HTTP_PORT, () => {
+    console.log(`App llistening on port ${process.env.HTTP_PORT}`)
+  })
+} else {
+  console.warn('HTTP port not specified, starting instance without http server')
+}

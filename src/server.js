@@ -32,7 +32,7 @@ const main = async () => {
     peerId: id,
     addresses: {
       // add a listen address (localhost) to accept TCP connections. 0 would mean the port is random
-      listen: [`/ip4/${process.env.HOSTNAME}/tcp/54442`]
+      listen: [`/ip4/${process.env.HOSTNAME}/tcp/${process.env.P2P_PORT}`]
     },
     transports: [tcp()],
     connectionEncryption: [noise()],
