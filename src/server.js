@@ -25,8 +25,12 @@ const main = async () => {
     console.log('Generating keys...')
     const privateKey = await keys.generateKeyPair('RSA', 2048)
     const publicKey = privateKey.public
-    fs.writeFileSync('./keys/private.key', Buffer.from(privateKey.bytes))
-    fs.writeFileSync('./keys/public.key', Buffer.from(publicKey.bytes))
+    const dir = './keys/'
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
+    fs.writeFileSync(dir + 'private.key', Buffer.from(privateKey.bytes))
+    fs.writeFileSync(dir + 'public.key', Buffer.from(publicKey.bytes))
   }
   const privateKey = new Uint8Array(fs.readFileSync('./keys/private.key'))
   const publicKey = new Uint8Array(fs.readFileSync('./keys/public.key'))
