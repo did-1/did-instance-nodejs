@@ -9,8 +9,12 @@ import { keys } from '@libp2p/crypto'
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
-
+// import { bootstrap } from '@libp2p/bootstrap'
+import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
+import { multiaddr } from 'multiaddr'
+// import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
+
 import { pipe } from 'it-pipe'
 
 const main = async () => {
@@ -28,6 +32,22 @@ const main = async () => {
   const publicKey = new Uint8Array(fs.readFileSync('./keys/public.key'))
   const id = await peerIdFromKeys(publicKey, privateKey)
   console.log(id)
+
+  const peerDiscovery = []
+  // if (process.env.BOOTSTRAPPERS) {
+  //   const booostrappers = process.env.BOOTSTRAPPERS?.split(',')
+  //   console.log('Using BOOTSTRAPPERS', booostrappers)
+  //   peerDiscovery.push(
+  //     bootstrap({
+  //       // tagName: 'bootstrap',
+  //       // tagValue: 50,
+  //       // tagTTL: 120000,
+  //       timeout: 1000,
+  //       list: booostrappers
+  //     })
+  //   )
+  // }
+  peerDiscovery.push(pubsubPeerDiscovery())
   const node = await createLibp2p({
     peerId: id,
     addresses: {
@@ -36,6 +56,7 @@ const main = async () => {
     },
     transports: [tcp()],
     connectionEncryption: [noise()],
+    peerDiscovery,
     streamMuxers: [mplex(), yamux()],
     pubsub: gossipsub({ allowPublishToZeroPeers: true })
   })
@@ -70,6 +91,27 @@ const main = async () => {
       }`
     )
   })
+
+  if (process.env.BOOTSTRAPPERS) {
+    const bootstrappers = process.env.BOOTSTRAPPERS.split(',')
+    bootstrappers.forEach(async (b) => {
+      const ma = multiaddr(b)
+      console.log(`pinging remote peer at ${b}`)
+      const _latency = await node.ping(ma)
+    })
+    // setInterval(async () => {
+    //   const resp = await node.pubsub
+    //     .publish(
+    //       'news',
+    //       uint8ArrayFromString('Bird bird bird, bird is the word!')
+    //     )
+    //     .catch((err) => {
+    //       console.error(err)
+    //     })
+    //   console.log(resp)
+    // }, 1000)
+  }
+
   // console.log('PEERID', node.peerId)
 
   await node.handle('/did/1.0.0', async ({ stream }) => {
