@@ -12,7 +12,7 @@ import { yamux } from '@chainsafe/libp2p-yamux'
 // import { bootstrap } from '@libp2p/bootstrap'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
 import { multiaddr } from 'multiaddr'
-// import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 
 import { pipe } from 'it-pipe'
@@ -89,11 +89,13 @@ const main = async () => {
 
   await node.pubsub.subscribe('news')
   node.pubsub.addEventListener('message', (evt) => {
-    console.log(
-      `node1 received: ${uint8ArrayToString(evt.detail.data)} on topic ${
-        evt.detail.topic
-      }`
-    )
+    if (evt.detail.topic !== '_peer-discovery._p2p._pubsub') {
+      console.log(
+        `node1 received: ${uint8ArrayToString(evt.detail.data)} on topic ${
+          evt.detail.topic
+        }`
+      )
+    }
   })
 
   if (process.env.BOOTSTRAPPERS) {
@@ -101,7 +103,37 @@ const main = async () => {
     bootstrappers.forEach(async (b) => {
       const ma = multiaddr(b)
       console.log(`pinging remote peer at ${b}`)
-      const _latency = await node.ping(ma)
+      const latency = await node.ping(ma)
+
+      console.log(`pinged ${b} in ${latency}ms`)
+      console.log(`dialing remote peer at ${b}`)
+
+      const stream = await node.dialProtocol(ma, '/did/1.0.0')
+      pipe(
+        // Source data
+        [uint8ArrayFromString('hey')],
+        // Write to the stream, and pass its output to the next function
+        stream,
+        // Sink function
+        async function (source) {
+          // For each chunk of data
+          for await (const data of source) {
+            // Output the data
+            console.log('received echo:', uint8ArrayToString(data.subarray()))
+          }
+        }
+      )
+      setTimeout(async () => {
+        const resp = await node.pubsub
+          .publish(
+            'news',
+            uint8ArrayFromString('Bird bird bird, bird is the word!')
+          )
+          .catch((err) => {
+            console.error(err)
+          })
+        console.log(resp)
+      }, 1000)
     })
     // setInterval(async () => {
     //   const resp = await node.pubsub
