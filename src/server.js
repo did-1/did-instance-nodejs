@@ -41,19 +41,6 @@ const main = async () => {
   console.log(id)
 
   const peerDiscovery = []
-  // if (process.env.BOOTSTRAPPERS) {
-  //   const booostrappers = process.env.BOOTSTRAPPERS?.split(',')
-  //   console.log('Using BOOTSTRAPPERS', booostrappers)
-  //   peerDiscovery.push(
-  //     bootstrap({
-  //       // tagName: 'bootstrap',
-  //       // tagValue: 50,
-  //       // tagTTL: 120000,
-  //       timeout: 1000,
-  //       list: booostrappers
-  //     })
-  //   )
-  // }
   peerDiscovery.push(pubsubPeerDiscovery())
   const node = await createLibp2p({
     peerId: id,
@@ -155,29 +142,7 @@ const main = async () => {
           }
         }
       )
-      // setTimeout(async () => {
-      //   const resp = await node.pubsub
-      //     .publish(
-      //       'news',
-      //       uint8ArrayFromString('Bird bird bird, bird is the word!')
-      //     )
-      //     .catch((err) => {
-      //       console.error(err)
-      //     })
-      //   console.log(resp)
-      // }, 1000)
     })
-    // setInterval(async () => {
-    //   const resp = await node.pubsub
-    //     .publish(
-    //       'news',
-    //       uint8ArrayFromString('Bird bird bird, bird is the word!')
-    //     )
-    //     .catch((err) => {
-    //       console.error(err)
-    //     })
-    //   console.log(resp)
-    // }, 1000)
   }
 
   // console.log('PEERID', node.peerId)
