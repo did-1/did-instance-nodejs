@@ -87,7 +87,8 @@ httpRouter.post('/users/:domain/post', async (req, res) => {
       signatureHex,
       path,
       hash,
-      blockHash
+      blockHash,
+      validatePostContent: true
     })
   } catch (e) {
     console.error(e)

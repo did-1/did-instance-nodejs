@@ -106,12 +106,14 @@ async function validateSubmission(params) {
     return { error: `Invalid public key` }
   }
   // 2. download post from url
-  const postUrl = ['http:/', postDomain, path].join('/')
-  const postResp = await fetch(postUrl)
-  const post = await postResp.text()
-  const postValidation = validatePostContent(post)
-  if (!postValidation.valid) {
-    return res.send({ error: `Valid DID post not found at ${postUrl}` })
+  if (params.validatePostContent) {
+    const postUrl = ['http:/', postDomain, path].join('/')
+    const postResp = await fetch(postUrl)
+    const post = await postResp.text()
+    const postValidation = validatePostContent(post)
+    if (!postValidation.valid) {
+      return res.send({ error: `Valid DID post not found at ${postUrl}` })
+    }
   }
   // 3. validate signature
   const message = [blockHash, postDomain, path, hash].join('/')
@@ -124,9 +126,11 @@ async function validateSubmission(params) {
     return { error: `Invalid post signature` }
   }
   // 4. validate content checksum hash
-  const contentHash = crypto.createHash('sha256').update(post).digest('hex')
-  if (contentHash !== hash) {
-    return { error: `Invalid content hash ${contentHash} ${hash}` }
+  if (params.validatePostContent) {
+    const contentHash = crypto.createHash('sha256').update(post).digest('hex')
+    if (contentHash !== hash) {
+      return { error: `Invalid content hash ${contentHash} ${hash}` }
+    }
   }
   // 5. validate block id
   const cachedBlock = await db.getBlock(blockHash)

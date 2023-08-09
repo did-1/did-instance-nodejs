@@ -17,7 +17,10 @@ db.run(
     domain TEXT NOT NULL,
     path TEXT NOT NULL,
     hash TEXT NOT NULL,
-    block TEXT NOT NULL
+    block TEXT NOT NULL,
+    source TEXT NOT NULL,
+    inserted_at INTEGER NOT NULL,
+    dead_at INTEGER NOT NULL
   );`,
   (err) => {
     if (err) {
