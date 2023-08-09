@@ -15,6 +15,9 @@ import { multiaddr } from 'multiaddr'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 
+import db from './db.js'
+import validators from './validators.js'
+
 import { pipe } from 'it-pipe'
 
 const main = async () => {
@@ -88,13 +91,41 @@ const main = async () => {
   console.log((await node.peerStore.all()).length)
 
   await node.pubsub.subscribe('news')
-  node.pubsub.addEventListener('message', (evt) => {
-    if (evt.detail.topic !== '_peer-discovery._p2p._pubsub') {
-      console.log(
-        `node1 received: ${uint8ArrayToString(evt.detail.data)} on topic ${
-          evt.detail.topic
-        }`
-      )
+  node.pubsub.addEventListener('message', async (evt) => {
+    if (evt.detail.topic === 'news') {
+      const data = JSON.parse(uint8ArrayToString(evt.detail.data))
+      const { ownerDomain, postDomain, signatureHex, path, hash, blockHash } =
+        data
+      try {
+        resp = await validators.validateSubmission({
+          ownerDomain,
+          postDomain,
+          signatureHex,
+          path,
+          hash,
+          blockHash
+        })
+      } catch (e) {
+        console.error(e)
+      }
+      if (resp.error || !resp.valid) {
+        console.error(resp.error || 'Validation failed')
+      }
+
+      // 7. save entry in sqlite
+      console.log('SAVE ENTRY', value.signatureHex)
+      try {
+        await db.insertPost(
+          ownerDomain,
+          postDomain,
+          path,
+          hash,
+          blockHash,
+          signatureHex
+        )
+      } catch (e) {
+        console.error(e)
+      }
     }
   })
 
