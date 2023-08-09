@@ -1,4 +1,3 @@
-import crypto from 'crypto'
 import express from 'express'
 import cors from 'cors'
 import fetch from 'node-fetch'
@@ -97,6 +96,7 @@ httpRouter.post('/users/:domain/post', async (req, res) => {
   if (resp.error || !resp.valid) {
     return res.send({ error: resp.error || 'Error' })
   }
+  const value = resp.value
 
   // 7. save entry in sqlite
   console.log('SAVE ENTRY')
