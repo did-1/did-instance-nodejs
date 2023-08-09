@@ -96,6 +96,7 @@ const main = async () => {
       const data = JSON.parse(uint8ArrayToString(evt.detail.data))
       const { ownerDomain, postDomain, signatureHex, path, hash, blockHash } =
         data
+      let resp = {}
       try {
         resp = await validators.validateSubmission({
           ownerDomain,
@@ -113,7 +114,7 @@ const main = async () => {
       }
 
       // 7. save entry in sqlite
-      console.log('SAVE ENTRY', value.signatureHex)
+      console.log('SAVE ENTRY', signatureHex)
       try {
         await db.insertPost(
           ownerDomain,
