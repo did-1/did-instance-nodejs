@@ -20,7 +20,7 @@ db.run(
     block TEXT NOT NULL,
     source TEXT NOT NULL,
     inserted_at INTEGER NOT NULL,
-    dead_at INTEGER NOT NULL
+    dead_at INTEGER
   );`,
   (err) => {
     if (err) {
@@ -43,11 +43,32 @@ db.run(
   }
 )
 
+db.run(
+  `CREATE TABLE IF NOT EXISTS users (
+    domain TEXT PRIMARY KEY,
+    key TEXT NOT NULL
+  );`,
+  (err) => {
+    if (err) {
+      return console.error(err.message) // If things go south, we'll know.
+    }
+    console.log('users table initialized') // Success, bro!
+  }
+)
+
 const methods = {
-  insertPost: (ownerDomain, postDomain, path, hash, blockHash, signature) => {
+  insertPost: (
+    ownerDomain,
+    postDomain,
+    path,
+    hash,
+    blockHash,
+    signature,
+    source
+  ) => {
     const promise = new Promise((resolve, reject) => {
       const stmt = db.prepare(
-        `INSERT INTO posts (signature, domain, hash, path, block) VALUES (?, ?, ?, ?, ?)`
+        `INSERT INTO posts (signature, domain, hash, path, block, source, inserted_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
       stmt.run(
         signature,
@@ -55,6 +76,8 @@ const methods = {
         hash,
         [postDomain, path].join('/'),
         blockHash,
+        source,
+        +new Date(),
         (err) => {
           if (err) {
             reject(err)
@@ -79,9 +102,34 @@ const methods = {
     })
     return promise
   },
+  insertUser: (hash, time) => {
+    const promise = new Promise((resolve, reject) => {
+      const stmt = db.prepare(`INSERT INTO users (domain, key) VALUES (?, ?)`)
+      stmt.run(hash, time, (err) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve()
+        }
+      })
+    })
+    return promise
+  },
   getBlock: (hash) => {
     const promise = new Promise((resolve, reject) => {
       db.get(`SELECT * FROM blocks WHERE hash = ?`, [hash], (err, row) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(row)
+        }
+      })
+    })
+    return promise
+  },
+  getUser: (domain) => {
+    const promise = new Promise((resolve, reject) => {
+      db.get(`SELECT * FROM users WHERE domain = ?`, [domain], (err, row) => {
         if (err) {
           reject(err)
         } else {

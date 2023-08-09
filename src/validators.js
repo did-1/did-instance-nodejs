@@ -105,7 +105,7 @@ async function validateSubmission(params) {
     console.error(e)
     return { error: `Invalid public key` }
   }
-  // 2. download post from url
+  // 2. download post from url and validate content
   if (params.validatePostContent) {
     const postUrl = ['http:/', postDomain, path].join('/')
     const postResp = await fetch(postUrl)
@@ -113,6 +113,10 @@ async function validateSubmission(params) {
     const postValidation = validatePostContent(post)
     if (!postValidation.valid) {
       return res.send({ error: `Valid DID post not found at ${postUrl}` })
+    }
+    const contentHash = crypto.createHash('sha256').update(post).digest('hex')
+    if (contentHash !== hash) {
+      return { error: `Invalid content hash ${contentHash} ${hash}` }
     }
   }
   // 3. validate signature
@@ -124,13 +128,6 @@ async function validateSubmission(params) {
   // console.log(message)
   if (!verification) {
     return { error: `Invalid post signature` }
-  }
-  // 4. validate content checksum hash
-  if (params.validatePostContent) {
-    const contentHash = crypto.createHash('sha256').update(post).digest('hex')
-    if (contentHash !== hash) {
-      return { error: `Invalid content hash ${contentHash} ${hash}` }
-    }
   }
   // 5. validate block id
   const cachedBlock = await db.getBlock(blockHash)

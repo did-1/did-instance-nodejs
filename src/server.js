@@ -79,6 +79,7 @@ const main = async () => {
 
   await node.pubsub.subscribe('news')
   node.pubsub.addEventListener('message', async (evt) => {
+    // console.log(evt.detail.from)
     if (evt.detail.topic === 'news') {
       const data = JSON.parse(uint8ArrayToString(evt.detail.data))
       const { ownerDomain, postDomain, signatureHex, path, hash, blockHash } =
@@ -109,7 +110,8 @@ const main = async () => {
           path,
           hash,
           blockHash,
-          signatureHex
+          signatureHex,
+          evt.detail.from.toString()
         )
       } catch (e) {
         console.error(e)

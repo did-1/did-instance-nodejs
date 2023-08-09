@@ -108,7 +108,8 @@ httpRouter.post('/users/:domain/post', async (req, res) => {
       value.path,
       value.hash,
       value.blockHash,
-      value.signatureHex
+      value.signatureHex,
+      req.p2pNode.peerId.toString()
     )
   } catch (e) {
     console.error(e)
