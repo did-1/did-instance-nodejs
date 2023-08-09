@@ -1,5 +1,8 @@
 // sanitize and validate domain name
 import { parse } from 'node-html-parser'
+import crypto from 'crypto'
+import fetch from 'node-fetch'
+import db from './db.js'
 
 function validatePath(path = '') {
   path = path.trim().replace(/\/+/g, '/').replace(/^\//, '').replace(/\/$/, '')
@@ -57,8 +60,108 @@ function validatePostContent(post) {
   return { valid }
 }
 
+async function validateSubmission(params) {
+  const domainValidation = validateDomainName(params.ownerDomain)
+  if (!domainValidation.valid) {
+    return { error: 'User domain invalid' + domainValidation.message }
+  }
+  const ownerDomain = domainValidation.value
+
+  const postDomainValidation = validateDomainName(params.postDomain)
+  if (!domainValidation.valid) {
+    return {
+      error: 'Post domain invalid:' + domainValidation.message
+    }
+  }
+  const postDomain = postDomainValidation.value
+
+  const pathValidation = validatePath(params.path)
+  if (!pathValidation.valid) {
+    return { error: 'Invalid path ' + pathValidation.message }
+  }
+  const path = pathValidation.value
+
+  // 2. get public key
+  const publicKeyUrl = ['http:/', ownerDomain, 'did.pem'].join('/')
+  const resp = await fetch(publicKeyUrl)
+  const { hash, blockHash, signatureHex } = params
+  const signature = []
+  for (let i = 0; i < signatureHex.length; i += 2) {
+    const hexPart = signatureHex.slice(i, i + 2)
+    signature.push(parseInt(hexPart, 16))
+  }
+  // console.log(signature)
+  const publicKeyPem = await resp.text()
+  if (!publicKeyPem.includes('PUBLIC KEY')) {
+    return { error: `Public key not found on ${publicKeyUrl}` }
+  }
+  let publicKey
+  try {
+    publicKey = crypto.createPublicKey({
+      key: publicKeyPem,
+      format: 'pem'
+    })
+  } catch (e) {
+    console.error(e)
+    return { error: `Invalid public key` }
+  }
+  // 2. download post from url
+  const postUrl = ['http:/', postDomain, path].join('/')
+  const postResp = await fetch(postUrl)
+  const post = await postResp.text()
+  const postValidation = validatePostContent(post)
+  if (!postValidation.valid) {
+    return res.send({ error: `Valid DID post not found at ${postUrl}` })
+  }
+  // 3. validate signature
+  const message = [blockHash, postDomain, path, hash].join('/')
+  const verify = crypto.createVerify('sha256')
+  verify.update(message)
+  verify.end()
+  const verification = verify.verify(publicKey, Buffer.from(signature), message)
+  // console.log(message)
+  if (!verification) {
+    return { error: `Invalid post signature` }
+  }
+  // 4. validate content checksum hash
+  const contentHash = crypto.createHash('sha256').update(post).digest('hex')
+  if (contentHash !== hash) {
+    return { error: `Invalid content hash ${contentHash} ${hash}` }
+  }
+  // 5. validate block id
+  const cachedBlock = await db.getBlock(blockHash)
+  if (!cachedBlock) {
+    const blockResp = await fetch(
+      `https://blockchain.info/rawblock/${blockHash}`
+    )
+    const block = await blockResp.json()
+    if (!block?.hash) {
+      return { domain, body, error: 'Invalid block hash' }
+    }
+    await db.insertBlock(block.hash, block.time)
+  }
+  // 6. check for DB conflicts
+  const conflictPost = await db.getPostBySignature(signatureHex)
+  if (conflictPost) {
+    // console.log(conflictPost)
+    return { error: 'Double submission' }
+  }
+  return {
+    valid: true,
+    value: {
+      ownerDomain,
+      postDomain,
+      path,
+      hash,
+      blockHash,
+      signatureHex
+    }
+  }
+}
+
 export default {
   validateDomainName,
   validatePostContent,
-  validatePath
+  validatePath,
+  validateSubmission
 }

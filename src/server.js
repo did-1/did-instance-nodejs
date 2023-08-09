@@ -123,17 +123,17 @@ const main = async () => {
           }
         }
       )
-      setTimeout(async () => {
-        const resp = await node.pubsub
-          .publish(
-            'news',
-            uint8ArrayFromString('Bird bird bird, bird is the word!')
-          )
-          .catch((err) => {
-            console.error(err)
-          })
-        console.log(resp)
-      }, 1000)
+      // setTimeout(async () => {
+      //   const resp = await node.pubsub
+      //     .publish(
+      //       'news',
+      //       uint8ArrayFromString('Bird bird bird, bird is the word!')
+      //     )
+      //     .catch((err) => {
+      //       console.error(err)
+      //     })
+      //   console.log(resp)
+      // }, 1000)
     })
     // setInterval(async () => {
     //   const resp = await node.pubsub

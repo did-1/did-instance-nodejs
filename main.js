@@ -2,7 +2,7 @@ import fs from 'fs'
 import dotenv from 'dotenv'
 
 import libp2pServer from './src/server.js'
-import httpServer from './src/http.js'
+import httpServer, { httpRouter } from './src/http.js'
 
 if (!fs.existsSync('./.env')) {
   console.log('Please setup .env file before launch')
@@ -19,6 +19,7 @@ async function start() {
       req.p2pNode = p2pNode
       next()
     })
+    httpServer.use(httpRouter)
     httpServer.listen(process.env.HTTP_PORT, () => {
       console.log(`App llistening on port ${process.env.HTTP_PORT}`)
     })
