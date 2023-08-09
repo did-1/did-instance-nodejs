@@ -164,6 +164,7 @@ const main = async () => {
 
   process.on('SIGTERM', stop)
   process.on('SIGINT', stop)
+  return node
 }
 
 export default main

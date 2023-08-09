@@ -11,12 +11,22 @@ if (!fs.existsSync('./.env')) {
 
 dotenv.config()
 
-libp2pServer().then().catch(console.error)
+async function start() {
+  const p2pNode = await libp2pServer()
 
-if (process.env.HTTP_PORT) {
-  httpServer.listen(process.env.HTTP_PORT, () => {
-    console.log(`App llistening on port ${process.env.HTTP_PORT}`)
-  })
-} else {
-  console.warn('HTTP port not specified, starting instance without http server')
+  if (process.env.HTTP_PORT) {
+    httpServer.use((req, res, next) => {
+      req.p2pNode = p2pNode
+      next()
+    })
+    httpServer.listen(process.env.HTTP_PORT, () => {
+      console.log(`App llistening on port ${process.env.HTTP_PORT}`)
+    })
+  } else {
+    console.warn(
+      'HTTP port not specified, starting instance without http server'
+    )
+  }
 }
+
+start()
