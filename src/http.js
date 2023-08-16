@@ -62,15 +62,16 @@ httpRouter.post('/users/:domain/path/validate', async (req, res) => {
   }
   const path = pathValidation.value
   let valid = false
+  let post = ''
   try {
     const resp = await fetch(['http:/', domain, path].join('/'))
-    const post = await resp.text()
+    post = await resp.text()
     const postValidation = validators.validatePostContent(post)
     if (postValidation.valid) {
       valid = true
     }
   } catch {}
-  return res.send({ domain, valid })
+  return res.send({ domain, valid, content: valid ? post : '' })
 })
 
 httpRouter.post('/users/:domain/post', async (req, res) => {
