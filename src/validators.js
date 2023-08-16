@@ -3,6 +3,7 @@ import { parse } from 'node-html-parser'
 import crypto from 'crypto'
 import fetch from 'node-fetch'
 import db from './db.js'
+import winston from 'winston'
 
 function validatePath(path = '') {
   path = path.trim().replace(/\/+/g, '/').replace(/^\//, '').replace(/\/$/, '')
@@ -51,12 +52,10 @@ function validatePostContent(post) {
       meta.getAttribute('name') === 'did:content' &&
       meta.getAttribute('content')
     ) {
-      // console.log(meta, meta.getAttribute('name'), meta.getAttribute('content'))
       valid = true
       break
     }
   }
-  // console.log(metas)
   return { valid }
 }
 
@@ -90,7 +89,6 @@ async function validateSubmission(params) {
     const hexPart = signatureHex.slice(i, i + 2)
     signature.push(parseInt(hexPart, 16))
   }
-  // console.log(signature)
   const publicKeyPem = await resp.text()
   if (!publicKeyPem.includes('PUBLIC KEY')) {
     return { error: `Public key not found on ${publicKeyUrl}` }
@@ -102,7 +100,7 @@ async function validateSubmission(params) {
       format: 'pem'
     })
   } catch (e) {
-    console.error(e)
+    winston.error(e)
     return { error: `Invalid public key` }
   }
   // 2. download post from url and validate content
@@ -125,7 +123,7 @@ async function validateSubmission(params) {
   verify.update(message)
   verify.end()
   const verification = verify.verify(publicKey, Buffer.from(signature), message)
-  // console.log(message)
+
   if (!verification) {
     return { error: `Invalid post signature` }
   }
@@ -144,7 +142,6 @@ async function validateSubmission(params) {
   // 6. check for DB conflicts
   const conflictPost = await db.getPostBySignature(signatureHex)
   if (conflictPost) {
-    // console.log(conflictPost)
     return { error: 'Double submission' }
   }
   return {

@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import fetch from 'node-fetch'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import winston from 'winston'
 
 import db from './db.js'
 import validators from './validators.js'
@@ -36,7 +37,6 @@ httpRouter.post('/users/:domain/validate', async (req, res) => {
   try {
     const resp = await fetch(['http:/', domain, 'did.pem'].join('/'))
     const text = await resp.text()
-    console.log(text)
     if (publicKey && text.replace(/\n/g, '') === publicKey.replace(/\n/g, '')) {
       valid = true
     }
@@ -78,7 +78,6 @@ httpRouter.post('/users/:domain/post', async (req, res) => {
   const signatureHex = signature
     .map((num) => num.toString(16).padStart(2, '0'))
     .join('')
-  console.log(signatureHex)
   let resp = {}
   try {
     resp = await validators.validateSubmission({
@@ -91,7 +90,7 @@ httpRouter.post('/users/:domain/post', async (req, res) => {
       validatePostContent: true
     })
   } catch (e) {
-    console.error(e)
+    winston.error(e)
     return res.send({ error: 'Validation error' })
   }
   if (resp.error || !resp.valid) {
@@ -100,7 +99,6 @@ httpRouter.post('/users/:domain/post', async (req, res) => {
   const value = resp.value
 
   // 7. save entry in sqlite
-  console.log('SAVE ENTRY')
   try {
     await db.insertPost(
       value.ownerDomain,
@@ -112,7 +110,7 @@ httpRouter.post('/users/:domain/post', async (req, res) => {
       req.p2pNode.peerId.toString()
     )
   } catch (e) {
-    console.error(e)
+    winston.error(e)
     return res.send({ error: 'Insert to DB failed' })
   }
   // 8. publish message on the network
@@ -131,7 +129,7 @@ httpRouter.post('/users/:domain/post', async (req, res) => {
       )
     )
   } catch (e) {
-    console.error(e)
+    winston.error(e)
     return res.send({ error: 'Publish to network failed' })
   }
   return res.send({ success: true })

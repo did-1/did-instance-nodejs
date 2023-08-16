@@ -1,4 +1,5 @@
 import fs from 'fs'
+import winston from 'winston'
 
 import { createLibp2p } from 'libp2p'
 import { tcp } from '@libp2p/tcp'
@@ -25,7 +26,7 @@ const main = async () => {
     !fs.existsSync('./keys/private.key') ||
     !fs.existsSync('./keys/public.key')
   ) {
-    console.log('Generating keys...')
+    winston.info('Generating keys...')
     const privateKey = await keys.generateKeyPair('RSA', 2048)
     const publicKey = privateKey.public
     const dir = './keys/'
@@ -38,7 +39,7 @@ const main = async () => {
   const privateKey = new Uint8Array(fs.readFileSync('./keys/private.key'))
   const publicKey = new Uint8Array(fs.readFileSync('./keys/public.key'))
   const id = await peerIdFromKeys(publicKey, privateKey)
-  console.log(id)
+  winston.info(`Your peer ID: ${id}`)
 
   const peerDiscovery = []
   peerDiscovery.push(pubsubPeerDiscovery())
@@ -56,30 +57,28 @@ const main = async () => {
   })
 
   node.addEventListener('peer:connect', async (evt) => {
-    console.log('Connection established to:', evt.detail.remotePeer.toString()) // Emitted when a new connection has been created
-    console.log((await node.peerStore.all()).length)
+    winston.verbose(
+      'Connection established to:',
+      evt.detail.remotePeer.toString()
+    ) // Emitted when a new connection has been created
   })
 
   node.addEventListener('peer:discovery', (evt) => {
     // No need to dial, autoDial is on
-    console.log('Discovered:', evt.detail.id.toString())
+    winston.verbose('Discovered:', evt.detail.id.toString())
   })
 
   // start libp2p
   await node.start()
 
   // print out listening addresses
-  console.log('listening on addresses:')
+  winston.info('listening on addresses:')
   node.getMultiaddrs().forEach((addr) => {
-    console.log(addr.toString())
+    winston.info(addr.toString())
   })
-
-  console.log('libp2p has started')
-  console.log((await node.peerStore.all()).length)
 
   await node.pubsub.subscribe('news')
   node.pubsub.addEventListener('message', async (evt) => {
-    // console.log(evt.detail.from)
     if (evt.detail.topic === 'news') {
       const data = JSON.parse(uint8ArrayToString(evt.detail.data))
       const { ownerDomain, postDomain, signatureHex, path, hash, blockHash } =
@@ -95,14 +94,14 @@ const main = async () => {
           blockHash
         })
       } catch (e) {
-        console.error(e)
+        winston.error(e)
       }
       if (resp.error || !resp.valid) {
-        console.error(resp.error || 'Validation failed')
+        winston.error(resp.error || 'Validation failed')
       }
 
       // 7. save entry in sqlite
-      console.log('SAVE ENTRY', signatureHex)
+      winston.info('SAVE ENTRY', signatureHex)
       try {
         await db.insertPost(
           ownerDomain,
@@ -114,7 +113,7 @@ const main = async () => {
           evt.detail.from.toString()
         )
       } catch (e) {
-        console.error(e)
+        winston.error(e)
       }
     }
   })
@@ -123,11 +122,10 @@ const main = async () => {
     const bootstrappers = process.env.BOOTSTRAPPERS.split(',')
     bootstrappers.forEach(async (b) => {
       const ma = multiaddr(b)
-      console.log(`pinging remote peer at ${b}`)
+      winston.verbose(`pinging remote peer at ${b}`)
       const latency = await node.ping(ma)
 
-      console.log(`pinged ${b} in ${latency}ms`)
-      console.log(`dialing remote peer at ${b}`)
+      winston.verbose(`pinged ${b} in ${latency}ms`)
 
       const stream = await node.dialProtocol(ma, '/did/1.0.0')
       pipe(
@@ -140,24 +138,25 @@ const main = async () => {
           // For each chunk of data
           for await (const data of source) {
             // Output the data
-            console.log('received echo:', uint8ArrayToString(data.subarray()))
+            winston.verbose(
+              'received echo:',
+              uint8ArrayToString(data.subarray())
+            )
           }
         }
       )
     })
   }
 
-  // console.log('PEERID', node.peerId)
-
   await node.handle('/did/1.0.0', async ({ stream }) => {
-    console.log('received did stream' + stream)
+    winston.verbose('received did stream' + stream)
     pipe(stream.source, stream.sink)
   })
 
   const stop = async () => {
     // stop libp2p
     await node.stop()
-    console.log('libp2p has stopped')
+    winston.info('p2p node has stopped')
     process.exit(0)
   }
 

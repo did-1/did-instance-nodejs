@@ -44,6 +44,7 @@
     "multiaddr": "^10.0.1",
     "node-fetch": "^3.3.1",
     "node-html-parser": "^6.1.5",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.1.6",
+    "winston": "^3.10.0"
   }
 }

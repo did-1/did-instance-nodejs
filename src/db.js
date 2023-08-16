@@ -1,13 +1,14 @@
 import sqlite3 from 'sqlite3'
+import winston from 'winston'
 
 const db = new sqlite3.Database(
   './did.db',
   sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
   (err) => {
     if (err) {
-      console.error(err.message) // Bummer, man! An error.
+      winston.error(err.message) // Bummer, man! An error.
     }
-    console.log('Connected to the did.db.') // All good, bro.
+    winston.debug('Connected to the did.db.') // All good, bro.
   }
 )
 
@@ -24,9 +25,9 @@ db.run(
   );`,
   (err) => {
     if (err) {
-      return console.error(err.message) // If things go south, we'll know.
+      return winston.error(err.message) // If things go south, we'll know.
     }
-    console.log('posts table initialized') // Success, bro!
+    winston.debug('posts table initialized') // Success, bro!
   }
 )
 
@@ -37,9 +38,9 @@ db.run(
   );`,
   (err) => {
     if (err) {
-      return console.error(err.message) // If things go south, we'll know.
+      return winston.error(err.message) // If things go south, we'll know.
     }
-    console.log('blocks table initialized') // Success, bro!
+    winston.debug('blocks table initialized') // Success, bro!
   }
 )
 
@@ -50,9 +51,9 @@ db.run(
   );`,
   (err) => {
     if (err) {
-      return console.error(err.message) // If things go south, we'll know.
+      return winston.error(err.message) // If things go south, we'll know.
     }
-    console.log('users table initialized') // Success, bro!
+    winston.debug('users table initialized') // Success, bro!
   }
 )
 
