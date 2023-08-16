@@ -13,7 +13,7 @@ app.use(express.json())
 export const httpRouter = express.Router()
 
 httpRouter.get('/', (req, res) => {
-  return res.send('This is DID instance node')
+  return res.send({ status: 'OK' })
 })
 
 // app.post('/keys', (req, res) => {
