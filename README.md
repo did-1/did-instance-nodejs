@@ -42,6 +42,14 @@ The most important table is `posts`. Table structure:
 
 `users` table is used to cache public keys for domains and `blocks` table is used to cache bitcoin network block information
 
+## Why bitcoin block hash is used for sumbmissions
+
+There are several reasons for that:
+
+1. To protect from submitting urls with future timestamps
+2. For easier future data synchronization, so that we could sync url data in blocks
+3. For future user actions limits implementation. There will be limited actions allowed from domain per block in order to avoid ddos and spam.
+
 ## Roadmap
 
 This code is still at proof of concept stage! You will be able to receive realtime updates from other instances, but data synchronization is not yet implemented. That means that you will not receive past submissions that were submitted before your instance was booted
