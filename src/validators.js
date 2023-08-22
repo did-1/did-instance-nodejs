@@ -131,7 +131,7 @@ async function validateSubmission(params) {
   const cachedBlock = await db.getBlock(blockHash)
   if (!cachedBlock) {
     const blockResp = await fetch(
-      `https://blockchain.info/rawblock/${blockHash}`
+      `https://api.blockcypher.com/v1/btc/main/blocks/${blockHash}?limit=1`
     )
     const block = await blockResp.json()
     if (!block?.hash) {
