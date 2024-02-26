@@ -136,6 +136,12 @@ httpRouter.post('/users/:domain/post', async (req, res) => {
   return res.send({ success: true })
 })
 
+httpRouter.get('/posts/:blockId', async (req, res) => {
+  const blockId = req.params.blockId
+  const posts = await db.getPostsByBlockHash(blockId)
+  return res.send(posts)
+});
+
 httpRouter.get('/block/latest', async (req, res) => {
   const resp = await fetch('https://blockchain.info/latestblock')
   const block = await resp.json()

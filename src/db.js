@@ -155,7 +155,23 @@ const methods = {
       )
     })
     return promise
-  }
+  },
+  getPostsByBlockHash: (blockHash) => {
+    const promise = new Promise((resolve, reject) => {
+      db.all(
+        `SELECT * FROM posts WHERE block = ?`,
+        [blockHash],
+        (err, rows) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(rows)
+          }
+        }
+      )
+    })
+    return promise
+  },
 }
 
 export default methods
