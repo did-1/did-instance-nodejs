@@ -1,6 +1,23 @@
 import fetch from 'node-fetch'
+import winston from 'winston'
 import { Command } from 'commander'
+
+import db from './db.js'
 import validators from './validators.js'
+
+winston.configure({
+  level: 'info',
+  format: winston.format.json(),
+  defaultMeta: { service: 'p2p-instance' },
+  transports: [
+    new winston.transports.Console({
+      level: 'info',
+      format: winston.format.simple()
+    }),
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' })
+  ]
+})
 
 const program = new Command()
 
@@ -27,11 +44,13 @@ async function main() {
   // https://www.blockchain.com/explorer/api/blockchain_api
   // Blocks for one day: https://blockchain.info/blocks/$time_in_milliseconds?format=json
   // https://blockchain.info/blocks/1708971812835?format=json
-  const blocks = await fetchBlocks(day);
+  const blocks = await fetchBlocks(day)
+  //console.log(blocks)
   blocks.forEach(async block => {
     // console.log(block.hash);
-    const response = await fetch(`${source}/posts/${block.hash}`);
-    const posts = await response.json();
+    const response = await fetch(`${source}/posts/${block.hash}`)
+    const posts = await response.json()
+    console.log(posts)
     posts.forEach(async post => {
       /* post example 
       {
@@ -65,9 +84,26 @@ async function main() {
       if (!valid.valid) {
         return;
       }
+      const value = valid.value;
+      
+      try {
+        await db.insertPost(
+          value.ownerDomain,
+          value.postDomain,
+          value.path,
+          value.hash,
+          value.blockHash,
+          value.signatureHex,
+          source
+        )
+        console.log('inserted');
+      } catch (e) {
+        winston.error(e)
+      }
     })
   });
+  // exit
 }
 
-// node src/populate.js -s https://instance.did-1.com -d 1694290654290
+// node src/populate.js -s https://instance.did-1.com -d 1692635195225
 main()
