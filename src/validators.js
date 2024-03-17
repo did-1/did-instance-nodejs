@@ -82,7 +82,12 @@ async function validateSubmission(params) {
 
   // 2. get public key
   const publicKeyUrl = ['http:/', ownerDomain, 'did.pem'].join('/')
-  const resp = await fetch(publicKeyUrl)
+  let resp;
+  try {
+    resp = await fetch(publicKeyUrl)
+  } catch (e) {
+    return { error: `Public key not found on ${publicKeyUrl}, network failure` }
+  }
   const { hash, blockHash, signatureHex } = params
   const signature = []
   for (let i = 0; i < signatureHex.length; i += 2) {

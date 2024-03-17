@@ -1,5 +1,6 @@
 import fetch from 'node-fetch'
 import { Command } from 'commander'
+import validators from './validators.js'
 
 const program = new Command()
 
@@ -28,9 +29,43 @@ async function main() {
   // https://blockchain.info/blocks/1708971812835?format=json
   const blocks = await fetchBlocks(day);
   blocks.forEach(async block => {
-    console.log(block.hash);
+    // console.log(block.hash);
     const response = await fetch(`${source}/posts/${block.hash}`);
-    console.log(await response.json());
+    const posts = await response.json();
+    posts.forEach(async post => {
+      /* post example 
+      {
+        signature: '3045022100e2ba6f9af7d847cabcb3a964315196982440b44c9c252e2b4f2ac00cfd37906202205cd5e1b5bc95afd3eb97514d71395f8f78fd989d520908923449cef47bbd09fc',
+        domain: 'revron.be',
+        path: 'revron.be/first-post',
+        hash: 'f47b92e3ef005ff463cc823ea367c945aab825349a521b75c4373b9643cd44dc',
+        block: '00000000000000000004c60f1e37d649f110fef4010102c5b6c6aa5dc1f47d91',
+        source: 'QmV2QyH7ZxcuHHwYxvHJQgKpMTv2u4kh51EZiMfYGawpdk',
+        inserted_at: 1694290654290,
+        dead_at: null
+      }
+      */
+
+      // split post.path in to domain and path
+      const parts = post.path.split('/');
+      const domain = parts[0];
+      parts.shift();
+      const path = parts.join('/');
+
+      const valid = await validators.validateSubmission({
+        ownerDomain: post.domain,
+        postDomain: domain,
+        signatureHex: post.signature,
+        path,
+        hash: post.hash,
+        blockHash: post.block,
+        validatePostContent: false
+      })
+      console.log(valid);
+      if (!valid.valid) {
+        return;
+      }
+    })
   });
 }
 
